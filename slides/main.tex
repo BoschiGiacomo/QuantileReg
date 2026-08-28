@@ -1,0 +1,103 @@
+\documentclass{beamer}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[table]{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{mathastext}
+
+\usetheme{PaloAlto}
+\usecolortheme{default}
+\usefonttheme{professionalfonts}
+
+\title{Quantile Regression}
+\subtitle{Mathematical Formulation and Real World Uses}
+\author{Giacomo Boschi}
+
+\date{September 9th, 2026}
+
+\begin{document}
+% Title
+\begin{frame}
+	\titlepage
+\end{frame}
+
+% Toc
+\begin{frame}
+	\frametitle{Table of Contents}
+	\tableofcontents
+\end{frame}
+
+\section{The Concept}
+\begin{frame}{The Foundation}
+	\begin{center}
+		In OLS, the parameters $(\beta_0,\beta_1)$ are obtained by minimizing the sum of squared residuals, which estimates the conditional mean $E(Y|X)$:
+		\[\underset{\beta_0,\beta_1}{min}\ \sum_{i=1}^n(y_i - (\beta_0+\beta_1 x_i))^2\]\hfill \break
+		If we replace the squared loss with the absolute value, we get the LAD, which estimates the conditional median $Q_{0,5}(Y|X)$:\hfill \break
+		\[\underset{\beta_0,\beta_1}{min} \sum_{i=1}^n\lvert y_i - (\beta_0+\beta_1 x_i)\rvert\]
+	\end{center}
+\end{frame}
+
+\begin{frame}{From Median to Quantiles through optimization}
+	\begin{center}
+		The conditional median is a specific quantile; can the loss function be modified to target other quantiles?\hfill \break
+
+		The absolute value is symmetric: it penalises positive and negative residuals equally, this is why we get the median. Therefore to target other quantiles, we have to give different weights to positive and negative residuals:
+
+		\[
+			\rho_{\tau}(\epsilon)  = \begin{cases}
+				\tau\epsilon\quad     & if\ \epsilon \geq 0 \\
+				(\tau-1)\epsilon\quad & if\ \epsilon < 0
+			\end{cases}\quad with\ \tau \in (0,1)
+		\]
+		where $\tau$ is the targeted quantile.
+	\end{center}
+\end{frame}
+
+\section{Quantile Regression}
+\begin{frame}{The Optimization Problem}
+	\begin{center}
+		Replacing the absolute value with $\rho_\tau$ in the regression problem, we obtain the quantile regression, a generalisation of the LAD, which estimates the conditional quantile $Q_\tau(Y|X)$
+
+		\[
+			min_{\beta_0,\beta_1}\ \sum_{i=1}^n \rho_\tau(y_i-(\beta_0+\beta_1x_i))
+		\]
+
+		Just like the LAD, this function is piecewise linear and can't be differentiable at 0; one of the approaches is to reformulate and solve it as an LP problem
+	\end{center}
+\end{frame}
+
+\begin{frame}{The LP Reformulation: splitting the residuals}
+	\begin{center}
+		Each residual $\epsilon = y_i - (\beta_0+\beta_1x_i)$ can be decomposed into its positive and negative parts:
+
+		\[
+			\epsilon_i=u_i-v_i,\quad with\ u_i, v_i \geq 0
+		\]
+		\[
+			\begin{cases}
+				\epsilon_i \geq 0\colon &
+				\begin{aligned}[t]
+					 & u_i = \epsilon_i,\; v_i = 0       \\
+					 & \Rightarrow \rho_\tau(\epsilon_i)
+					= \tau\epsilon_i
+					= \tau u_i + (1-\tau)\cdot 0
+				\end{aligned} \\
+				\epsilon_i < 0\colon    &
+				\begin{aligned}[t]
+					 & u_i = 0,\; v_i = -\epsilon_i      \\
+					 & \Rightarrow \rho_\tau(\epsilon_i)
+					= (\tau-1)\epsilon_i
+					= \tau\cdot 0 + (1-\tau)v_i
+				\end{aligned}
+			\end{cases}
+		\]
+
+		In both cases: $\rho_\tau(\epsilon_i) = \tau u_i + (1-\tau)v_i$
+	\end{center}
+\end{frame}
+\end{document}
