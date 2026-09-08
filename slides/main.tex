@@ -13,6 +13,7 @@
 \usetheme{PaloAlto}
 \usecolortheme{default}
 \usefonttheme{professionalfonts}
+\setbeamertemplate{bibliography item}[text]
 
 \title{Quantile Regression}
 \subtitle{Mathematical Formulation and Real World Uses}
@@ -130,6 +131,98 @@
 		\centering
 		\includegraphics[width=\textwidth]{Images/EngelQR.png}
 		\caption{Engel Curves Dataset (Koenker \& Hallock 2001, Fig. 3)}
+		\label{fig:EngelQR}
 	\end{figure}
+\end{frame}
+
+\section{Final Remarks}
+\begin{frame}{OLS vs Quantile Regression}
+	\begin{columns}[t]
+		\begin{column}{.45\textwidth}
+			\begin{center}
+				\textbf{OLS}
+			\end{center}
+			\begin{itemize}
+				\item Estimates the conditional mean
+				\item Sensitive to outliers (squared loss)
+				\item One optimization problem, one slope
+				\item Can't capture how the relationship varies across the distribution
+			\end{itemize}
+		\end{column}
+		\begin{column}{.45\textwidth}
+			\begin{center}
+				\textbf{Quantile Regression}
+			\end{center}
+			\begin{itemize}
+				\item Estimates any conditional quantile
+				\item Less sensitive to outliers, like LAD
+				\item Family of LPs in $\tau$, multiple slopes
+				\item Naturally reveals how the relationship changes across quantiles
+			\end{itemize}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\begin{frame}{Advantages, Limitations and Applications}
+	\textbf{Advantages}
+	\begin{itemize}
+		\item Less sensitive to outliers than other methods
+		\item Naturally reveals the relationship across different quantiles
+		\item Requires no distributional assumption on the errors
+	\end{itemize}
+	\textbf{Limitations}
+	\begin{itemize}
+		\item More computationally expensive than linear regression
+		\item The extra robustness is sometimes unnecessary
+	\end{itemize}
+	\textbf{Applications}
+	Suited to any setting where the conditional distribution of Y|X varies in shape across X
+	\begin{itemize}
+		\item \textbf{Demand Analysis}: e.g. Engel Curves (Fig. \ref{fig:EngelQR}) or Alcohol Demand
+		\item \textbf{Labor economics}: e.g. Wage Inequality
+		\item \textbf{Medical Research}: e.g. Birthweight (Koenker \& Hallock, 2001)
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+	\vfill
+	\begin{center}
+		\Large\textit{``Just as the mean gives an incomplete picture
+			of a single distribution, so the regression curve gives a
+			corresponding incomplete picture for a set of distributions.''}
+
+		\vspace{0.5em}
+		\normalsize --- Mosteller \& Tukey (1977)
+
+		\vspace{1.5em}
+		\large\textit{``[Quantile regression is] a comprehensive
+			strategy for completing the regression picture.''}
+
+		\vspace{0.5em}
+		\normalsize --- Koenker \& Hallock (2001)
+	\end{center}
+	\vfill
+\end{frame}
+
+\begin{frame}{References}
+	\begin{thebibliography}{9}
+		\bibitem{KB1978}
+		Koenker, R. and Bassett, G. (1978).
+		\textit{Regression Quantiles}.
+		Econometrica, 46(1), 33--50.
+
+		\bibitem{KH2001}
+		Koenker, R. and Hallock, K.F. (2001).
+		\textit{Quantile Regression}.
+		Journal of Economic Perspectives, 15(4), 143--156.
+
+		\bibitem{MT1977}
+		Mosteller, F. and Tukey, J. (1977).
+		\textit{Data Analysis and Regression: A Second Course in Statistics}.
+		Addison-Wesley. As cited in Koenker \& Hallock (2001).
+
+		\bibitem{course}
+		Course lecture notes, Optimization Fundamentals.
+	\end{thebibliography}
 \end{frame}
 \end{document}
