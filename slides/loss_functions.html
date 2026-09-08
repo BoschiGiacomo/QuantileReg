@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loss functions comparison</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.8rem;
+  }
+  .panels {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .panel-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+  .panel-title .color-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .panel-formula {
+    font-size: 1.05rem;
+    color: #555;
+    margin-top: 0.4rem;
+    font-family: 'Times New Roman', 'Georgia', serif;
+    font-style: italic;
+  }
+  canvas {
+    border: 1px solid #d4d4d4;
+    border-radius: 3px;
+    background: #fafafa;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 0.9rem 1.8rem;
+    background: #f0f0f0;
+    border-radius: 6px;
+  }
+  .tau-display {
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: 'Times New Roman', 'Georgia', serif;
+    min-width: 90px;
+    text-align: right;
+  }
+  input[type="range"] {
+    width: 280px;
+    accent-color: #dc2626;
+    cursor: pointer;
+  }
+  .tau-hint {
+    font-size: 0.82rem;
+    color: #777;
+    min-width: 180px;
+    transition: opacity 0.2s;
+  }
+  .tau-hint.highlight {
+    color: #059669;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<h1>Loss Function Comparison</h1>
+
+<div class="panels">
+  <div class="panel">
+    <div class="panel-title"><span class="color-dot" style="background:#2563eb"></span>Squared Loss (OLS)</div>
+    <canvas id="c-ols" width="360" height="280"></canvas>
+    <div class="panel-formula">ρ(ε) = ε²</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><span class="color-dot" style="background:#059669"></span>Absolute Loss (LAD)</div>
+    <canvas id="c-lad" width="360" height="280"></canvas>
+    <div class="panel-formula">ρ(ε) = |ε|</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><span class="color-dot" style="background:#dc2626"></span>Check Function (QR)</div>
+    <canvas id="c-qr" width="360" height="280"></canvas>
+    <div class="panel-formula" id="qr-formula">ρ<sub>τ</sub>(ε) = τε if ε ≥ 0, (τ−1)ε if ε &lt; 0</div>
+  </div>
+</div>
+
+<div class="controls">
+  <span class="tau-display" id="tau-display">τ = 0.50</span>
+  <input type="range" id="tau-slider" min="5" max="95" value="50" step="1">
+  <span class="tau-hint" id="tau-hint">τ = 0.5 → reduces to LAD</span>
+</div>
+
+<script>
+(function() {
+  // --- Config ---
+  const W = 360, H = 280;
+  const PAD = { top: 12, right: 20, bottom: 32, left: 44 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+  const xMin = -2.5, xMax = 2.5;
+  const yMin = -0.2, yMax = 4.5;
+
+  const BLUE = '#2563eb';
+  const GREEN = '#059669';
+  const RED = '#dc2626';
+
+  // --- DPI scaling ---
+  function setupCanvas(id) {
+    const canvas = document.getElementById(id);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return ctx;
+  }
+
+  // --- Coordinate mapping ---
+  function sx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * plotW; }
+  function sy(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * plotH; }
+
+  // --- Draw axes and grid ---
+  function drawAxes(ctx) {
+    // Grid lines
+    ctx.strokeStyle = '#e5e5e5';
+    ctx.lineWidth = 1;
+    for (let x = -2; x <= 2; x++) {
+      ctx.beginPath(); ctx.moveTo(sx(x), sy(yMin)); ctx.lineTo(sx(x), sy(yMax)); ctx.stroke();
+    }
+    for (let y = 0; y <= 4; y++) {
+      ctx.beginPath(); ctx.moveTo(sx(xMin), sy(y)); ctx.lineTo(sx(xMax), sy(y)); ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx(xMin), sy(0)); ctx.lineTo(sx(xMax), sy(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx(0), sy(yMin)); ctx.lineTo(sx(0), sy(yMax)); ctx.stroke();
+
+    // Tick labels
+    ctx.fillStyle = '#666';
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let x = -2; x <= 2; x++) {
+      if (x === 0) continue;
+      ctx.fillText(x, sx(x), sy(0) + 4);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let y = 1; y <= 4; y++) {
+      ctx.fillText(y, sx(xMin) + PAD.left - 8, sy(y));
+    }
+
+    // Axis labels
+    ctx.fillStyle = '#444';
+    ctx.font = 'italic 20px "Times New Roman", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('ε', sx(xMax) - 4, sy(0) + 14);
+    ctx.textBaseline = 'bottom';
+    ctx.textAlign = 'right';
+    ctx.fillText('ρ', sx(0) - 8, sy(yMax) + 16);
+  }
+
+  // --- Draw a curve ---
+  function drawCurve(ctx, func, color, lineWidth) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth || 3.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const steps = 400;
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + (xMax - xMin) * i / steps;
+      const y = func(x);
+      const px = sx(x), py = sy(y);
+      if (py < sy(yMax) - 2 || py > sy(yMin) + 2) {
+        // Clip: skip points outside the plot area
+        if (i > 0) ctx.moveTo(px, Math.max(sy(yMax), Math.min(sy(yMin), py)));
+        continue;
+      }
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  // --- Draw kink dot at origin ---
+  function drawKink(ctx, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(sx(0), sy(0), 5, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  // --- Loss functions ---
+  const ols = r => r * r;
+  const lad = r => Math.abs(r);
+  const checkFn = (r, tau) => r >= 0 ? tau * r : (tau - 1) * r;
+
+  // --- Draw static panels ---
+  const ctxOLS = setupCanvas('c-ols');
+  drawAxes(ctxOLS);
+  drawCurve(ctxOLS, ols, BLUE);
+
+  const ctxLAD = setupCanvas('c-lad');
+  drawAxes(ctxLAD);
+  drawCurve(ctxLAD, lad, GREEN);
+  drawKink(ctxLAD, GREEN);
+
+  // --- QR panel (dynamic) ---
+  const ctxQR = setupCanvas('c-qr');
+  const slider = document.getElementById('tau-slider');
+  const tauDisplay = document.getElementById('tau-display');
+  const tauHint = document.getElementById('tau-hint');
+
+  function drawQR(tau) {
+    ctxQR.clearRect(0, 0, W, H);
+    drawAxes(ctxQR);
+
+    // Faded ½|r| reference (= ρ_{0.5}, the LAD-equivalent check function)
+    const halfLAD = r => 0.5 * Math.abs(r);
+    ctxQR.setLineDash([6, 4]);
+    drawCurve(ctxQR, halfLAD, '#aaa', 2);
+    ctxQR.setLineDash([]);
+
+    // Check function
+    drawCurve(ctxQR, r => checkFn(r, tau), RED);
+    drawKink(ctxQR, RED);
+
+    // Slope annotations — fixed positions in top corners, clear of curves
+    ctxQR.font = '15px system-ui, sans-serif';
+    ctxQR.fillStyle = '#dc2626';
+    ctxQR.textAlign = 'right';
+    ctxQR.textBaseline = 'top';
+    ctxQR.fillText('slope = −' + (1 - tau).toFixed(2), sx(-0.3), sy(yMax) + 6);
+    ctxQR.textAlign = 'left';
+    ctxQR.fillText('slope = ' + tau.toFixed(2), sx(0.3), sy(yMax) + 6);
+
+    // Update display
+    tauDisplay.textContent = 'τ = ' + tau.toFixed(2);
+
+    if (Math.abs(tau - 0.5) < 0.01) {
+      tauHint.textContent = 'τ = 0.5 → reduces to LAD';
+      tauHint.classList.add('highlight');
+    } else if (tau > 0.5) {
+      tauHint.textContent = 'Penalises under-prediction more';
+      tauHint.classList.remove('highlight');
+    } else {
+      tauHint.textContent = 'Penalises over-prediction more';
+      tauHint.classList.remove('highlight');
+    }
+  }
+
+  slider.addEventListener('input', function() {
+    // Soft snap: if within ±2 steps of 50, lock to 50
+    const raw = parseInt(this.value);
+    if (Math.abs(raw - 50) <= 2) {
+      this.value = 50;
+    }
+    drawQR(this.value / 100);
+  });
+
+  // Initial draw
+  drawQR(0.5);
+})();
+</script>
+</body>
+</html>
