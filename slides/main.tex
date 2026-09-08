@@ -36,9 +36,9 @@
 \begin{frame}{The Foundation}
 	\begin{center}
 		In OLS, the parameters $(\beta_0,\beta_1)$ are obtained by minimizing the sum of squared residuals, which estimates the conditional mean $E(Y|X)$:
-		\[\underset{\beta_0,\beta_1}{min}\ \sum_{i=1}^n(y_i - (\beta_0+\beta_1 x_i))^2\]\hfill \break
+		\[\min_{\beta_0,\beta_1}\ \sum_{i=1}^n(y_i - (\beta_0+\beta_1 x_i))^2\]\hfill \break
 		If we replace the squared loss with the absolute value, we get the LAD, which estimates the conditional median $Q_{0,5}(Y|X)$:\hfill \break
-		\[\underset{\beta_0,\beta_1}{min} \sum_{i=1}^n\lvert y_i - (\beta_0+\beta_1 x_i)\rvert\]
+		\[\min_{\beta_0,\beta_1} \sum_{i=1}^n\lvert y_i - (\beta_0+\beta_1 x_i)\rvert\]
 	\end{center}
 \end{frame}
 
@@ -64,7 +64,7 @@
 		Replacing the absolute value with $\rho_\tau$ in the regression problem, we obtain the quantile regression, a generalisation of the LAD, which estimates the conditional quantile $Q_\tau(Y|X)$
 
 		\[
-			min_{\beta_0,\beta_1}\ \sum_{i=1}^n \rho_\tau(y_i-(\beta_0+\beta_1x_i))
+			\min_{\beta_0,\beta_1}\ \sum_{i=1}^n \rho_\tau(y_i-(\beta_0+\beta_1x_i))
 		\]
 
 		Just like the LAD, this function is piecewise linear and can't be differentiable at 0; one of the approaches is to reformulate and solve it as an LP problem
@@ -99,5 +99,37 @@
 
 		In both cases: $\rho_\tau(\epsilon_i) = \tau u_i + (1-\tau)v_i$
 	\end{center}
+\end{frame}
+
+\begin{frame}{The LP Reformulation: complete problem}
+	\begin{center}
+		Therefore the complete reformulation of the problem can be summarized in this form:\hfill
+
+		\begin{align*}
+			\min_{\beta_0,\beta_1,u_i,v_i}\quad & \tau\sum_{i=1}^n u_i + (1-\tau)\sum_{i=1}^n v_i                              \\
+			s.t.\quad                           & y_i-(\beta_0+\beta_1 x_i) = u_i - v_i         \quad & \forall i=1,\ldots,n   \\
+			                                    & u_i,v_i \geq 0\qquad                                & \forall i = 1,\ldots,n
+		\end{align*}
+
+		In this form the problem is an LP, which is computationally trivial, and directly translatable to the solver
+
+	\end{center}
+\end{frame}
+
+\section{MATLAB Solution}
+\begin{frame}{YALMIP and Gurobi Implementation}
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=\textwidth]{Images/quant_reg_func.png}
+	\end{figure}
+\end{frame}
+
+\section{Results}
+\begin{frame}{Engel Curves via Quantile Regression}
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=\textwidth]{Images/EngelQR.png}
+		\caption{Engel Curves Dataset (Koenker \& Hallock 2001, Fig. 3)}
+	\end{figure}
 \end{frame}
 \end{document}
