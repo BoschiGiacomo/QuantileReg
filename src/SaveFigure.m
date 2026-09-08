@@ -26,8 +26,8 @@ end
 xrange = [min(data.income); max(data.income)];
 Xplot = [ones(2,1), xrange];
 
-figure;
-scatter(data, "income", "foodexp", 60, "filled", "DisplayName", "data");
+figure("Position", [100 100 1400 700]);
+scatter(data, "income", "foodexp", "filled", "SizeData", 60, "DisplayName", "Households");
 hold on
 plot(xrange, Xplot * betaOLS, "--k", "LineWidth", 2, "DisplayName", "OLS regr")
 
